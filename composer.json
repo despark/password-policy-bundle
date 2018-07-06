@@ -1,0 +1,31 @@
+{
+    "name": "despark/password-policy-bundle",
+    "description": "Password policy enforcements",
+    "type": "library",
+    "require": {
+        "php": "^7.2",
+        "symfony/framework-bundle": "^4.1",
+        "doctrine/collections": "^1.5"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.2",
+        "mockery/mockery": "^1.1"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ludmil Simeonov",
+            "email": "lsimeonov@despark.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Despark\\Bundle\\PasswordPolicyBundle\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Despark\\Bundle\\PasswordPolicyBundle\\Tests\\": "tests"
+        }
+    }
+}

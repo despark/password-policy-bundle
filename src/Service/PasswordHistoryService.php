@@ -1,37 +1,21 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\Service;
+namespace Despark\PasswordPolicyBundle\Service;
 
 
-use Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
-use Despark\Bundle\PasswordPolicyBundle\Model\PasswordHistoryInterface;
-use Doctrine\ORM\EntityManagerInterface;
+use Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
+use Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface;
 
 class PasswordHistoryService implements PasswordHistoryServiceInterface
 {
-
     /**
-     * @var \Doctrine\ORM\EntityManagerInterface
-     */
-    private $em;
-
-    /**
-     * PasswordHistoryService constructor.
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     */
-    public function __construct(EntityManagerInterface $em)
-    {
-        $this->em = $em;
-    }
-
-    /**
-     * @param \Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
+     * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
      * @param int $historyLimit
      *
      * @return array Removed items
      */
-    public function cleanupHistory(HasPasswordPolicyInterface $entity, int $historyLimit): array
+    public function getHistoryItemsForCleanup(HasPasswordPolicyInterface $entity, int $historyLimit): array
     {
         $historyCollection = $entity->getPasswordHistory();
 
@@ -45,14 +29,13 @@ class PasswordHistoryService implements PasswordHistoryServiceInterface
                 $aTs = $a->getCreatedAt()->format('U');
                 $bTs = $b->getCreatedAt()->format('U');
 
-                return $aTs - $bTs;
+                return $bTs - $aTs;
             });
 
             $historyForCleanup = array_slice($historyArray, $historyLimit);
 
             foreach ($historyForCleanup as $item) {
                 $removedItems[] = $item;
-                $this->em->remove($item);
             }
         }
 

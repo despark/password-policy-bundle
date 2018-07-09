@@ -1,13 +1,13 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\EventListener;
+namespace Despark\PasswordPolicyBundle\EventListener;
 
 
-use Despark\Bundle\PasswordPolicyBundle\Exceptions\RuntimeException;
-use Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
-use Despark\Bundle\PasswordPolicyBundle\Model\PasswordHistoryInterface;
-use Despark\Bundle\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface;
+use Despark\PasswordPolicyBundle\Exceptions\RuntimeException;
+use Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
+use Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface;
+use Despark\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 
@@ -26,40 +26,47 @@ class PasswordEntityListener
      */
     private $historyLimit;
     /**
-     * @var \Despark\Bundle\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface
+     * @var \Despark\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface
      */
     private $passwordHistoryService;
+    /**
+     * @var string
+     */
+    private $entityClass;
 
     /**
      * PasswordEntityListener constructor.
-     * @param \Despark\Bundle\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface $passwordHistoryService
+     * @param \Despark\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface $passwordHistoryService
      * @param string $passwordField
      * @param string $passwordHistoryField
      * @param int $historyLimit
+     * @param string $entityClass
      */
     public function __construct(
         PasswordHistoryServiceInterface $passwordHistoryService,
         string $passwordField,
         string $passwordHistoryField,
-        int $historyLimit
+        int $historyLimit,
+        string $entityClass
     ) {
         $this->passwordField = $passwordField;
         $this->passwordHistoryField = $passwordHistoryField;
         $this->historyLimit = $historyLimit;
         $this->passwordHistoryService = $passwordHistoryService;
+        $this->entityClass = $entityClass;
     }
 
     /**
      * @param \Doctrine\ORM\Event\OnFlushEventArgs $eventArgs
-     * @throws \Despark\Bundle\PasswordPolicyBundle\Exceptions\RuntimeException
+     * @throws \Despark\PasswordPolicyBundle\Exceptions\RuntimeException
      */
     public function onFlush(OnFlushEventArgs $eventArgs)
     {
         $em = $eventArgs->getEntityManager();
         $uow = $em->getUnitOfWork();
 
-        foreach ($uow->getScheduledEntityUpdates() as $keyEntity => $entity) {
-            if ($entity instanceof HasPasswordPolicyInterface) {
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if (is_a($entity, $this->entityClass, true) && $entity instanceof HasPasswordPolicyInterface) {
                 $changeSet = $uow->getEntityChangeSet($entity);
 
                 if (array_key_exists($this->passwordField, $changeSet) && isset($changeSet[$this->passwordField][0])) {
@@ -72,15 +79,16 @@ class PasswordEntityListener
 
     /**
      * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
+     * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
      * @param string $oldPassword
-     * @throws \Despark\Bundle\PasswordPolicyBundle\Exceptions\RuntimeException
+     * @return \Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface
+     * @throws \Despark\PasswordPolicyBundle\Exceptions\RuntimeException
      */
-    private function createPasswordHistory(
+    public function createPasswordHistory(
         EntityManagerInterface $em,
         HasPasswordPolicyInterface $entity,
         string $oldPassword
-    ) {
+    ): PasswordHistoryInterface {
         $uow = $em->getUnitOfWork();
         $entityMeta = $em->getClassMetadata(get_class($entity));
 
@@ -104,41 +112,23 @@ class PasswordEntityListener
         $history->$userSetter($entity);
         $history->setPassword($oldPassword);
         $history->setCreatedAt(new \DateTime());
+        $history->setSalt($entity->getSalt());
 
         $entity->addPasswordHistory($history);
 
-        $this->passwordHistoryService->cleanupHistory($entity, $this->historyLimit);
+
+        $stalePasswords = $this->passwordHistoryService->getHistoryItemsForCleanup($entity, $this->historyLimit);
+
+        foreach ($stalePasswords as $stalePassword) {
+            $em->remove($stalePassword);
+        }
 
         $em->persist($history);
         $uow->computeChangeSets();
 
         $entity->setPasswordChangedAt(new \DateTime());
-    }
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
-     */
-    private function cleanupHistory(EntityManagerInterface $em, HasPasswordPolicyInterface $entity): void
-    {
-        $historyCollection = $entity->getPasswordHistory();
-
-        $len = $historyCollection->count();
-        if ($len > $this->historyLimit) {
-            $historyArray = $historyCollection->toArray();
-
-            usort($historyArray, function (PasswordHistoryInterface $a, PasswordHistoryInterface $b) {
-                $aTs = $a->getCreatedAt()->format('U');
-                $bTs = $b->getCreatedAt()->format('U');
-
-                return $aTs - $bTs;
-            });
-
-            $historyForCleanup = array_slice($historyArray, $this->historyLimit);
-            foreach ($historyForCleanup as $item) {
-                $em->remove($item);
-            }
-        }
+        return $history;
     }
 
 }

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\DependencyInjection;
+namespace Despark\PasswordPolicyBundle\DependencyInjection;
 
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -13,7 +13,7 @@ class Configuration implements ConfigurationInterface
     private const DEFAULT_PASSWORD_FIELD = 'password';
     private const DEFAULT_PASSWORD_HISTORY_FIELD = 'passwordHistory';
     private const DEFAULT_PASSWORDS_TO_REMEMBER = 3;
-    private const DEFAULT_EXPIRY_LISTENER_PRIORITY = 2000;
+    private const DEFAULT_EXPIRY_LISTENER_PRIORITY = 0;
     private const DEFAULT_EXPIRY_DAYS = 90;
 
     /**
@@ -33,6 +33,7 @@ class Configuration implements ConfigurationInterface
                     ->arrayNode('entities')
                         ->useAttributeAsKey('class')
                         ->cannotBeEmpty()
+                        ->isRequired()
                         ->arrayPrototype()
                             ->addDefaultsIfNotSet()
                             ->children()
@@ -48,19 +49,30 @@ class Configuration implements ConfigurationInterface
                                     ->defaultValue(self::DEFAULT_PASSWORDS_TO_REMEMBER)
                                     ->treatNullLike(self::DEFAULT_PASSWORDS_TO_REMEMBER)
                                 ->end()
+                                ->integerNode('expiry_days')
+                                    ->defaultValue(self::DEFAULT_EXPIRY_DAYS)
+                                    ->treatNullLike(self::DEFAULT_EXPIRY_DAYS)
+                                ->end()
+                                ->scalarNode('lock_route')
+                                    ->isRequired()
+                                    ->cannotBeEmpty()
+                                ->end()
+                                ->arrayNode('lock_route_params')
+                                    ->useAttributeAsKey('param')
+                                    ->scalarPrototype()->end()
+                                ->end()
+                                ->arrayNode('excluded_routes')
+                                    ->scalarPrototype()->end()
+                                ->end()
                             ->end()
                         ->end()
                     ->end()
-                    ->arrayNode('expiry')
+                    ->arrayNode('expiry_listener')
                     ->addDefaultsIfNotSet()
                         ->children()
-                            ->integerNode('listener_priority')
+                            ->integerNode('priority')
                                 ->defaultValue(self::DEFAULT_EXPIRY_LISTENER_PRIORITY)
                                 ->treatNullLike(self::DEFAULT_EXPIRY_LISTENER_PRIORITY)
-                            ->end()
-                            ->integerNode('expiry_days')
-                                ->defaultValue(self::DEFAULT_EXPIRY_DAYS)
-                                ->treatNullLike(self::DEFAULT_EXPIRY_DAYS)
                             ->end()
                         ->end()
                     ->end()

@@ -5,45 +5,62 @@ namespace Despark\PasswordPolicyBundle\Service;
 
 
 use Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
+use Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface;
+use Symfony\Component\Security\Core\Encoder\BCryptPasswordEncoder;
+use Symfony\Component\Security\Core\Encoder\EncoderFactoryInterface;
 use Symfony\Component\Security\Core\Encoder\PasswordEncoderInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
-class PasswordPolicyEnforcerService
+class PasswordPolicyService implements PasswordPolicyServiceInterface
 {
 
     /**
-     * @var \Symfony\Component\Security\Core\Encoder\PasswordEncoderInterface
+     * @var \Symfony\Component\Security\Core\Encoder\EncoderFactoryInterface
      */
-    private $passwordEncoder;
+    private $encoderFactory;
 
     /**
      * PasswordPolicyEnforcerService constructor.
-     * @param \Symfony\Component\Security\Core\Encoder\PasswordEncoderInterface $passwordEncoder
+     * @param \Symfony\Component\Security\Core\Encoder\EncoderFactoryInterface $encoderFactory
      */
-    public function __construct(PasswordEncoderInterface $passwordEncoder)
+    public function __construct(EncoderFactoryInterface $encoderFactory)
     {
-        $this->passwordEncoder = $passwordEncoder;
+        $this->encoderFactory = $encoderFactory;
     }
 
     /**
      * @param string $password
      * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
-     * @return bool
+     * @return \Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface|null
      */
-    public function isInHistory(string $password, HasPasswordPolicyInterface $entity): bool
-    {
+    public function getHistoryByPassword(
+        string $password,
+        HasPasswordPolicyInterface $entity
+    ): ?PasswordHistoryInterface {
         $history = $entity->getPasswordHistory();
 
+        $encoder = $this->getEncoder($entity);
+
         foreach ($history as $passwordHistory) {
-            if ($this->passwordEncoder->isPasswordValid(
-                $passwordHistory->getPassword(),
-                $password,
-                $entity->getSalt()
-            )) {
-                return true;
+            if ($encoder->isPasswordValid($passwordHistory->getPassword(), $password, $passwordHistory->getSalt())) {
+                return $passwordHistory;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    /**
+     * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
+     * @return \Symfony\Component\Security\Core\Encoder\PasswordEncoderInterface
+     */
+    public function getEncoder(HasPasswordPolicyInterface $entity): PasswordEncoderInterface
+    {
+        if ($entity instanceof UserInterface) {
+            return $this->encoderFactory->getEncoder($entity);
+        } else {
+            return new BCryptPasswordEncoder(3);
+        }
     }
 
 }

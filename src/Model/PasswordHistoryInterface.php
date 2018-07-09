@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\Model;
+namespace Despark\PasswordPolicyBundle\Model;
 
 
 interface PasswordHistoryInterface
@@ -16,6 +16,17 @@ interface PasswordHistoryInterface
      * @param string $password
      */
     public function setPassword(string $password): void;
+
+    /**
+     * @return null|string
+     */
+    public function getSalt(): ?string;
+
+    /**
+     * @param null|string $salt
+     * @return mixed
+     */
+    public function setSalt(?string $salt);
 
     /**
      * @return \DateTime

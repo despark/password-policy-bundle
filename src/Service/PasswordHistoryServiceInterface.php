@@ -1,14 +1,15 @@
 <?php
 
-namespace Despark\Bundle\PasswordPolicyBundle\Service;
+namespace Despark\PasswordPolicyBundle\Service;
 
-use Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
+use Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
 
 interface PasswordHistoryServiceInterface
 {
     /**
-     * @param \Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
+     * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
      * @param int $historyLimit
+     * @return array
      */
-    public function cleanupHistory(HasPasswordPolicyInterface $entity, int $historyLimit): void;
+    public function getHistoryItemsForCleanup(HasPasswordPolicyInterface $entity, int $historyLimit): array;
 }

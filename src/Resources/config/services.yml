@@ -9,5 +9,12 @@ services:
         public: false
 
 
-    Despark\Bundle\PasswordPolicyBundle\Service\:
+    Despark\PasswordPolicyBundle\Service\:
         resource: '../../Service/*'
+
+    Despark\PasswordPolicyBundle\Validator\PasswordPolicyValidator:
+        autowire: true
+
+    Despark\PasswordPolicyBundle\Service\PasswordExpiryService:
+        arguments:
+            $tokenStorage: '@security.token_storage'

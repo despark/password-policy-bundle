@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\Tests\;
+namespace Despark\PasswordPolicyBundle\Tests;
 
 
 use PHPUnit\Framework\TestCase;

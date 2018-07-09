@@ -4,7 +4,7 @@
 namespace Despark\PasswordPolicyBundle\Exceptions;
 
 
-class ValidationException
+class ValidationException extends \Exception
 {
 
 }

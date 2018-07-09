@@ -1,16 +1,18 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\DependencyInjection;
+namespace Despark\PasswordPolicyBundle\DependencyInjection;
 
 
-use Despark\Bundle\PasswordPolicyBundle\EventListener\PasswordEntityListener;
-use Despark\Bundle\PasswordPolicyBundle\EventListener\PasswordExpiryListener;
-use Despark\Bundle\PasswordPolicyBundle\Exceptions\ConfigurationException;
-use Despark\Bundle\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
-use Despark\Bundle\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface;
+use Despark\PasswordPolicyBundle\EventListener\PasswordEntityListener;
+use Despark\PasswordPolicyBundle\EventListener\PasswordExpiryListener;
+use Despark\PasswordPolicyBundle\Exceptions\ConfigurationException;
+use Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface;
+use Despark\PasswordPolicyBundle\Model\PasswordExpiryConfiguration;
+use Despark\PasswordPolicyBundle\Service\PasswordExpiryService;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
@@ -36,58 +38,77 @@ class PasswordPolicyExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
+        $this->addExpiryListener($container, $config);
+
+        $expiryService = $container->getDefinition(PasswordExpiryService::class);
+
         foreach ($config['entities'] as $entityClass => $settings) {
             if (!class_exists($entityClass)) {
                 throw new ConfigurationException(sprintf('Entity class %s not found', $entityClass));
             }
 
             $this->addEntityListener($container, $entityClass, $settings);
+
+            $passwordExpiryConfig = $container->register(
+                'password_expiry_configuration.'.$entityClass,
+                PasswordExpiryConfiguration::class
+            );
+            $passwordExpiryConfig->setArguments([
+                $entityClass,
+                $settings['expiry_days'],
+                $settings['lock_route'],
+                $settings['lock_route_params'] ?? [],
+                $settings['excluded_routes'],
+            ]);
+
+            $expiryService->addMethodCall('addEntity', [$passwordExpiryConfig]);
         }
 
-        $this->addExpiryListener($container, $config);
     }
 
-    private function addExpiryListener(ContainerBuilder $container, array $config)
+    /**
+     * @param \Symfony\Component\DependencyInjection\ContainerBuilder $container
+     * @param array $config
+     * @return \Symfony\Component\DependencyInjection\Definition
+     */
+    private function addExpiryListener(ContainerBuilder $container, array $config): Definition
     {
-        $expiryConfig = $config['expiry'];
-
-        $container->register(PasswordExpiryListener::class)
-                  ->addTag('kernel.event_listener', [
-                      'event' => 'kernel.request',
-                      'priority' => $expiryConfig['listener_priority'],
-                  ])
-                  ->setArguments([
-                      $expiryConfig['expiry_days'],
-                  ]);
+        return $container->autowire(PasswordExpiryListener::class)
+                         ->addTag('kernel.event_listener', [
+                             'event' => 'kernel.request',
+                             'priority' => $config['expiry_listener']['priority'],
+                         ]);
     }
 
     /**
      * @param \Symfony\Component\DependencyInjection\ContainerBuilder $container
      * @param $entityClass
      * @param $settings
-     * @throws \Despark\Bundle\PasswordPolicyBundle\Exceptions\ConfigurationException
+     * @return \Symfony\Component\DependencyInjection\Definition
+     * @throws \Despark\PasswordPolicyBundle\Exceptions\ConfigurationException
      */
     private function addEntityListener(
         ContainerBuilder $container,
         string $entityClass,
         array $settings
-    ): void {
+    ): Definition {
         if (!is_a($entityClass, HasPasswordPolicyInterface::class, true)) {
             throw new ConfigurationException(sprintf('Entity %s doesn\'t implement %s interface', $entityClass,
                 HasPasswordPolicyInterface::class));
         }
 
         $snakeClass = strtolower(str_replace('\\', '_', $entityClass));
-        $entityListener = $container->register('password_policy.entity_listener.'.$snakeClass)
-                                    ->setClass(PasswordEntityListener::class);
+        $entityListener = $container->autowire('password_policy.entity_listener.'.$snakeClass,
+            PasswordEntityListener::class);
 
         $entityListener->addTag('doctrine.event_listener', ['event' => 'onFlush']);
-        $entityListener->setArguments([
-            $settings['password_field'],
-            $settings['password_history_field'],
-            $settings['passwords_to_remember'],
-            $container->getDefinition(PasswordHistoryServiceInterface::class),
-        ]);
+
+        $entityListener->setArgument('$passwordField', $settings['password_field']);
+        $entityListener->setArgument('$passwordHistoryField', $settings['password_history_field']);
+        $entityListener->setArgument('$historyLimit', $settings['passwords_to_remember']);
+        $entityListener->setArgument('$entityClass', $entityClass);
+
+        return $entityListener;
     }
 
 

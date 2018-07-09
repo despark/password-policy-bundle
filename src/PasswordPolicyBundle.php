@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle;
+namespace Despark\PasswordPolicyBundle;
 
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;

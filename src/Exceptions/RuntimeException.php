@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Despark\Bundle\PasswordPolicyBundle\Exceptions;
+namespace Despark\PasswordPolicyBundle\Exceptions;
 
 
 class RuntimeException extends \Exception

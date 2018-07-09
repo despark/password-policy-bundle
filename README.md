@@ -1,5 +1,9 @@
 # Password Policy Bundle
 
+<p align="center">
+<a href="https://travis-ci.org/despark/password-policy-bundle"><img src="https://travis-ci.org/despark/password-policy-bundle.svg?branch=master" alt="Build Status"></a>
+</p>
+
 ### Installation
 ```bash
 composer require despark/password-policy-bundle

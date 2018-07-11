@@ -56,15 +56,19 @@ class PasswordEntityListenerTest extends UnitTestCase
             'password',
             'passwordHistory',
             '3',
-            get_class($this->entityMock)
+            get_class($this->entityMock),
         ])->makePartial();
     }
 
     /**
      * @throws \Despark\PasswordPolicyBundle\Exceptions\RuntimeException
      */
-    public function testOnFlush()
+    public function testOnFlushUpdates()
     {
+        $this->uowMock->shouldReceive('getScheduledEntityInsertions')
+                      ->once()
+                      ->andReturn([]);
+
         $this->uowMock->shouldReceive('getScheduledEntityUpdates')
                       ->once()
                       ->andReturn([
@@ -83,6 +87,37 @@ class PasswordEntityListenerTest extends UnitTestCase
         $this->passwordEntityListener->shouldReceive('createPasswordHistory')
                                      ->once()
                                      ->withArgs([$this->emMock, $this->entityMock, 'pwd_1']);
+
+        $this->emMock->shouldReceive('getUnitOfWork')
+                     ->andReturn($this->uowMock);
+
+        $event = new OnFlushEventArgs($this->emMock);
+
+        $this->passwordEntityListener->onFlush($event);
+
+        $this->assertTrue(true);
+    }
+
+    public function testOnFlushInserts()
+    {
+        $this->entityMock->shouldReceive('getPassword')
+                         ->andReturn('pwd');
+
+        $this->uowMock->shouldReceive('getScheduledEntityInsertions')
+                      ->once()
+                      ->andReturn([
+                          $this->entityMock,
+                      ]);
+
+        $this->uowMock->shouldReceive('getScheduledEntityUpdates')
+                      ->once()
+                      ->andReturn([]);
+
+        $this->uowMock->shouldNotReceive('getEntityChangeSet');
+
+        $this->passwordEntityListener->shouldReceive('createPasswordHistory')
+                                     ->once()
+                                     ->withArgs([$this->emMock, $this->entityMock, 'pwd']);
 
         $this->emMock->shouldReceive('getUnitOfWork')
                      ->andReturn($this->uowMock);
@@ -141,6 +176,61 @@ class PasswordEntityListenerTest extends UnitTestCase
         $this->assertNotNull($history->getCreatedAt());
         $this->assertEquals($this->entityMock, $history->getUser());
         $this->assertEquals('salt', $history->getSalt());
+    }
+
+    public function testCreatePasswordHistoryNullPassword()
+    {
+        $this->uowMock->shouldReceive('computeChangeSets')
+                      ->once();
+
+        $this->emMock->shouldReceive('getUnitOfWork')
+                     ->once()
+                     ->andReturn($this->uowMock);
+
+        $classMetadata = new ClassMetadata('foo');
+
+        $classMetadata->associationMappings['passwordHistory']['targetEntity'] = PasswordHistoryMock::class;
+        $classMetadata->associationMappings['passwordHistory']['mappedBy'] = 'user';
+
+        $this->emMock->shouldReceive('getClassMetadata')
+                     ->once()
+                     ->withArgs([get_class($this->entityMock)])
+                     ->andReturn($classMetadata);
+
+        $this->entityMock->shouldReceive('addPasswordHistory')
+                         ->once();
+
+        $this->entityMock->shouldReceive('getSalt')
+                         ->andReturn('salt');
+
+        $pwdHistoryMock = \Mockery::mock(PasswordHistoryMock::class);
+        $this->passwordHistoryServiceMock->shouldReceive('getHistoryItemsForCleanup')
+                                         ->once()
+                                         ->withArgs([$this->entityMock, 3])
+                                         ->andReturn([$pwdHistoryMock]);
+
+        $this->emMock->shouldReceive('remove')
+                     ->once()
+                     ->with($pwdHistoryMock);
+
+        $this->emMock->shouldReceive('persist')
+                     ->once();
+
+        $this->entityMock->shouldReceive('setPasswordChangedAt')
+                         ->once();
+
+        $this->entityMock->shouldReceive('getPassword')
+                         ->twice()
+                         ->andReturnValues(['pwd', null]);
+
+        $history = $this->passwordEntityListener->createPasswordHistory($this->emMock, $this->entityMock, null);
+
+        $this->assertEquals($history->getPassword(), 'pwd');
+        $this->assertNotNull($history->getCreatedAt());
+        $this->assertEquals($this->entityMock, $history->getUser());
+        $this->assertEquals('salt', $history->getSalt());
+
+        $this->assertNull($this->passwordEntityListener->createPasswordHistory($this->emMock, $this->entityMock, null));
     }
 
     public function testCreatePasswordHistoryBadInstance()

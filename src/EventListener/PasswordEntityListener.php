@@ -69,10 +69,17 @@ class PasswordEntityListener
             if (is_a($entity, $this->entityClass, true) && $entity instanceof HasPasswordPolicyInterface) {
                 $changeSet = $uow->getEntityChangeSet($entity);
 
-                if (array_key_exists($this->passwordField, $changeSet) && isset($changeSet[$this->passwordField][0])) {
+                if (array_key_exists($this->passwordField, $changeSet) && array_key_exists(0,
+                        $changeSet[$this->passwordField])) {
                     $this->createPasswordHistory($em, $entity, $changeSet[$this->passwordField][0]);
                 }
 
+            }
+        }
+
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if (is_a($entity, $this->entityClass, true) && $entity instanceof HasPasswordPolicyInterface) {
+                $this->createPasswordHistory($em, $entity, $entity->getPassword());
             }
         }
     }
@@ -80,15 +87,23 @@ class PasswordEntityListener
     /**
      * @param \Doctrine\ORM\EntityManagerInterface $em
      * @param \Despark\PasswordPolicyBundle\Model\HasPasswordPolicyInterface $entity
-     * @param string $oldPassword
-     * @return \Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface
+     * @param string|null $oldPassword
+     * @return \Despark\PasswordPolicyBundle\Model\PasswordHistoryInterface|null
      * @throws \Despark\PasswordPolicyBundle\Exceptions\RuntimeException
      */
     public function createPasswordHistory(
         EntityManagerInterface $em,
         HasPasswordPolicyInterface $entity,
-        string $oldPassword
-    ): PasswordHistoryInterface {
+        ?string $oldPassword
+    ): ?PasswordHistoryInterface {
+        if (is_null($oldPassword) || $oldPassword === '') {
+            $oldPassword = $entity->getPassword();
+        }
+
+        if (!$oldPassword) {
+            return null;
+        }
+
         $uow = $em->getUnitOfWork();
         $entityMeta = $em->getClassMetadata(get_class($entity));
 

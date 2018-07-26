@@ -132,7 +132,7 @@ class PasswordExpiryService implements PasswordExpiryServiceInterface
                 return null;
             }
 
-            return $user;
+            return $user instanceof HasPasswordPolicyInterface ? $user : null;
         }
 
         return null;

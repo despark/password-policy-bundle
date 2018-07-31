@@ -103,7 +103,7 @@ class PasswordEntityListenerTest extends UnitTestCase
         $this->entityMock->shouldReceive('getPassword')
                          ->andReturn('pwd');
         $this->entityMock->shouldReceive('getPasswordChangedAt')
-                     ->andReturnNull();
+                         ->andReturnNull();
 
         $this->uowMock->shouldReceive('getScheduledEntityInsertions')
                       ->once()
@@ -172,6 +172,9 @@ class PasswordEntityListenerTest extends UnitTestCase
                      ->once()
                      ->andReturn($classMetadataMock);
 
+        $this->uowMock->shouldReceive('recomputeSingleEntityChangeSet')
+                      ->once();
+
         $this->uowMock->shouldReceive('computeChangeSet')
                       ->once();
 
@@ -189,6 +192,9 @@ class PasswordEntityListenerTest extends UnitTestCase
 
     public function testCreatePasswordHistoryNullPassword()
     {
+        $this->uowMock->shouldReceive('recomputeSingleEntityChangeSet')
+                      ->once();
+
         $this->uowMock->shouldReceive('computeChangeSet')
                       ->once();
 

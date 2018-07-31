@@ -63,3 +63,8 @@ password_policy:
 
 ##### Expiry
 Expiry works by checking last password change on every request made to the app, excluding those configured in the application
+
+##### Good to know
+The library uses doctrine lifecycle events to create password history and set last password change on the target entities.
+In order for this to happen we use the onFlush event and we are recalculating the history change set inside it.
+You must be aware of that as any entity changes after the recalculation will not be persisted to the database.

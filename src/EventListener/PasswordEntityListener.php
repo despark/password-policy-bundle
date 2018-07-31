@@ -139,7 +139,9 @@ class PasswordEntityListener
         }
 
         $em->persist($history);
-        $uow->computeChangeSets();
+
+        $metadata = $em->getClassMetadata($historyClass);
+        $uow->computeChangeSet($metadata, $history);
 
         $entity->setPasswordChangedAt(new \DateTime());
 

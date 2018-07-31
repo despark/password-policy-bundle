@@ -79,7 +79,10 @@ class PasswordEntityListener
 
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if (is_a($entity, $this->entityClass, true) && $entity instanceof HasPasswordPolicyInterface) {
-                $this->createPasswordHistory($em, $entity, $entity->getPassword());
+                // Explicitly check if the there is no value for password
+                if (!$entity->getPasswordChangedAt()) {
+                    $this->createPasswordHistory($em, $entity, $entity->getPassword());
+                }
             }
         }
     }

@@ -102,6 +102,8 @@ class PasswordEntityListenerTest extends UnitTestCase
     {
         $this->entityMock->shouldReceive('getPassword')
                          ->andReturn('pwd');
+        $this->entityMock->shouldReceive('getPasswordChangedAt')
+                     ->andReturnNull();
 
         $this->uowMock->shouldReceive('getScheduledEntityInsertions')
                       ->once()

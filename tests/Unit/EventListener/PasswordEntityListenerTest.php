@@ -131,9 +131,6 @@ class PasswordEntityListenerTest extends UnitTestCase
 
     public function testCreatePasswordHistory()
     {
-        $this->uowMock->shouldReceive('computeChangeSets')
-                      ->once();
-
         $this->emMock->shouldReceive('getUnitOfWork')
                      ->once()
                      ->andReturn($this->uowMock);
@@ -167,6 +164,16 @@ class PasswordEntityListenerTest extends UnitTestCase
         $this->emMock->shouldReceive('persist')
                      ->once();
 
+        $classMetadataMock = \Mockery::mock(ClassMetadata::class);
+
+        $this->emMock->shouldReceive('getClassMetadata')
+                     ->once()
+                     ->andReturn($classMetadataMock);
+
+        $this->uowMock->shouldReceive('computeChangeSet')
+                      ->once();
+
+
         $this->entityMock->shouldReceive('setPasswordChangedAt')
                          ->once();
 
@@ -180,7 +187,7 @@ class PasswordEntityListenerTest extends UnitTestCase
 
     public function testCreatePasswordHistoryNullPassword()
     {
-        $this->uowMock->shouldReceive('computeChangeSets')
+        $this->uowMock->shouldReceive('computeChangeSet')
                       ->once();
 
         $this->emMock->shouldReceive('getUnitOfWork')
@@ -192,10 +199,11 @@ class PasswordEntityListenerTest extends UnitTestCase
         $classMetadata->associationMappings['passwordHistory']['targetEntity'] = PasswordHistoryMock::class;
         $classMetadata->associationMappings['passwordHistory']['mappedBy'] = 'user';
 
+        $classMetadataMock = \Mockery::mock(ClassMetadata::class);
+
         $this->emMock->shouldReceive('getClassMetadata')
-                     ->once()
-                     ->withArgs([get_class($this->entityMock)])
-                     ->andReturn($classMetadata);
+                     ->twice()
+                     ->andReturnValues([$classMetadata, $classMetadataMock]);
 
         $this->entityMock->shouldReceive('addPasswordHistory')
                          ->once();

@@ -40,6 +40,11 @@ class PasswordEntityListener
     private $processedNewEntities = [];
 
     /**
+     * @var array
+     */
+    private $processedPasswords =[];
+
+    /**
      * PasswordEntityListener constructor.
      * @param \Despark\PasswordPolicyBundle\Service\PasswordHistoryServiceInterface $passwordHistoryService
      * @param string $passwordField
@@ -118,6 +123,10 @@ class PasswordEntityListener
             return null;
         }
 
+        if(array_key_exists($oldPassword, $this->processedPasswords)){
+            return null;
+        }
+
         $uow = $em->getUnitOfWork();
         $entityMeta = $em->getClassMetadata(get_class($entity));
 
@@ -145,6 +154,7 @@ class PasswordEntityListener
 
         $entity->addPasswordHistory($history);
 
+        $this->processedPasswords[$oldPassword] = $history;
 
         $stalePasswords = $this->passwordHistoryService->getHistoryItemsForCleanup($entity, $this->historyLimit);
 

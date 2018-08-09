@@ -86,21 +86,6 @@ class PasswordEntityListener
 
             }
         }
-
-        foreach ($uow->getScheduledEntityInsertions() as $entity) {
-            $entityHash = spl_object_hash($entity);
-
-            // Make sure to process it only once. We experienced cases when this can be called multiple times.
-            if (array_key_exists($entityHash, $this->processedNewEntities)) {
-                continue;
-            }
-
-            if (is_a($entity, $this->entityClass, true) && $entity instanceof HasPasswordPolicyInterface) {
-                // Explicitly check if the there is no value for password
-                $this->createPasswordHistory($em, $entity, $entity->getPassword());
-                $this->processedNewEntities[$entityHash] = true;
-            }
-        }
     }
 
     /**

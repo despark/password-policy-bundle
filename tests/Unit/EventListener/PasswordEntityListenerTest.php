@@ -65,10 +65,6 @@ class PasswordEntityListenerTest extends UnitTestCase
      */
     public function testOnFlushUpdates()
     {
-        $this->uowMock->shouldReceive('getScheduledEntityInsertions')
-                      ->once()
-                      ->andReturn([]);
-
         $this->uowMock->shouldReceive('getScheduledEntityUpdates')
                       ->once()
                       ->andReturn([
@@ -87,39 +83,6 @@ class PasswordEntityListenerTest extends UnitTestCase
         $this->passwordEntityListener->shouldReceive('createPasswordHistory')
                                      ->once()
                                      ->withArgs([$this->emMock, $this->entityMock, 'pwd_1']);
-
-        $this->emMock->shouldReceive('getUnitOfWork')
-                     ->andReturn($this->uowMock);
-
-        $event = new OnFlushEventArgs($this->emMock);
-
-        $this->passwordEntityListener->onFlush($event);
-
-        $this->assertTrue(true);
-    }
-
-    public function testOnFlushInserts()
-    {
-        $this->entityMock->shouldReceive('getPassword')
-                         ->andReturn('pwd');
-        $this->entityMock->shouldReceive('getPasswordChangedAt')
-                         ->andReturnNull();
-
-        $this->uowMock->shouldReceive('getScheduledEntityInsertions')
-                      ->once()
-                      ->andReturn([
-                          $this->entityMock,
-                      ]);
-
-        $this->uowMock->shouldReceive('getScheduledEntityUpdates')
-                      ->once()
-                      ->andReturn([]);
-
-        $this->uowMock->shouldNotReceive('getEntityChangeSet');
-
-        $this->passwordEntityListener->shouldReceive('createPasswordHistory')
-                                     ->once()
-                                     ->withArgs([$this->emMock, $this->entityMock, 'pwd']);
 
         $this->emMock->shouldReceive('getUnitOfWork')
                      ->andReturn($this->uowMock);

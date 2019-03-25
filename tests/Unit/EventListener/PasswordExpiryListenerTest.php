@@ -65,6 +65,8 @@ class PasswordExpiryListenerTest extends UnitTestCase
                     ->andReturn('route');
 
         $responseEventMock = \Mockery::mock(GetResponseEvent::class);
+        $responseEventMock->shouldReceive('isMasterRequest')
+                          ->andReturn(true);
         $responseEventMock->shouldReceive('getRequest')
                           ->andReturn($requestMock);
 
@@ -101,6 +103,8 @@ class PasswordExpiryListenerTest extends UnitTestCase
                     ->andReturn('/route');
 
         $responseEventMock = \Mockery::mock(GetResponseEvent::class);
+        $responseEventMock->shouldReceive('isMasterRequest')
+                          ->andReturn(true);
         $responseEventMock->shouldReceive('getRequest')
                           ->andReturn($requestMock);
 
@@ -123,6 +127,8 @@ class PasswordExpiryListenerTest extends UnitTestCase
                     ->andReturn('/excluded-2');
 
         $responseEventMock = \Mockery::mock(GetResponseEvent::class);
+        $responseEventMock->shouldReceive('isMasterRequest')
+                          ->andReturn(true);
         $responseEventMock->shouldReceive('getRequest')
                           ->andReturn($requestMock);
 
@@ -145,12 +151,27 @@ class PasswordExpiryListenerTest extends UnitTestCase
                     ->andReturn('/route');
 
         $responseEventMock = \Mockery::mock(GetResponseEvent::class);
+        $responseEventMock->shouldReceive('isMasterRequest')
+                          ->andReturn(true);
         $responseEventMock->shouldReceive('getRequest')
                           ->andReturn($requestMock);
 
         $this->passwordExpiryServiceMock->shouldReceive('isPasswordExpired')
                                         ->once()
                                         ->andReturnFalse();
+
+        $this->passwordExpiryListenerMock->onKernelRequest($responseEventMock);
+
+        $this->assertTrue(true);
+    }
+
+    public function testOnKernelRequestAsSubRequest()
+    {
+        $responseEventMock = \Mockery::mock(GetResponseEvent::class);
+        $responseEventMock->shouldReceive('isMasterRequest')
+                          ->andReturn(false);
+
+        $this->passwordExpiryServiceMock->shouldNotReceive('isPasswordExpired');
 
         $this->passwordExpiryListenerMock->onKernelRequest($responseEventMock);
 

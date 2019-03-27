@@ -34,6 +34,10 @@ class PasswordExpiryListener
 
     public function onKernelRequest(GetResponseEvent $event)
     {
+        if (!$event->isMasterRequest()) {
+            return;
+        }
+
         $request = $event->getRequest();
         $route = $request->get('_route');
 

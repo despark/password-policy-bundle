@@ -77,7 +77,9 @@ class PasswordPolicyExtension extends Extension
                          ->addTag('kernel.event_listener', [
                              'event' => 'kernel.request',
                              'priority' => $config['expiry_listener']['priority'],
-                         ]);
+                         ])
+                         ->setArgument('$errorMessage', $config['expiry_listener']['error_msg']['text'])
+                         ->setArgument('$errorMessageType', $config['expiry_listener']['error_msg']['type']);
     }
 
     /**

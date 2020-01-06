@@ -15,6 +15,8 @@ class Configuration implements ConfigurationInterface
     private const DEFAULT_PASSWORDS_TO_REMEMBER = 3;
     private const DEFAULT_EXPIRY_LISTENER_PRIORITY = 0;
     private const DEFAULT_EXPIRY_DAYS = 90;
+    private const DEFAULT_ERROR_MSG = 'Your password expired. You need to change it';
+    private const DEFAULT_ERROR_TYPE = 'error';
 
     /**
      * Generates the configuration tree builder.
@@ -73,6 +75,19 @@ class Configuration implements ConfigurationInterface
                             ->integerNode('priority')
                                 ->defaultValue(self::DEFAULT_EXPIRY_LISTENER_PRIORITY)
                                 ->treatNullLike(self::DEFAULT_EXPIRY_LISTENER_PRIORITY)
+                            ->end()
+                            ->arrayNode('error_msg')
+                            ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->scalarNode('text')
+                                        ->defaultValue(self::DEFAULT_ERROR_MSG)
+                                        ->treatNullLike(self::DEFAULT_ERROR_MSG)
+                                    ->end()
+                                    ->scalarNode('type')
+                                        ->defaultValue(self::DEFAULT_ERROR_TYPE)
+                                        ->treatNullLike(self::DEFAULT_ERROR_TYPE)
+                                    ->end()
+                                ->end()
                             ->end()
                         ->end()
                     ->end()

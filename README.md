@@ -53,6 +53,9 @@ password_policy:
     expiry_listener:
             # You can change the expiry listener priority
             priority: 0
+            error_msg:
+                text: 'Your password expired. You need to change it'
+                type: 'error'
 
         listener_priority: 0
         # The route that needs to be shown to the user when password is expired

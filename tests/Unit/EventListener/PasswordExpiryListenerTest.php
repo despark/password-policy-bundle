@@ -50,6 +50,8 @@ class PasswordExpiryListenerTest extends UnitTestCase
         $this->passwordExpiryListenerMock = \Mockery::mock(PasswordExpiryListener::class, [
             $this->passwordExpiryServiceMock,
             $this->sessionMock,
+            'error',
+            'Your password expired. You need to change it'
         ])->makePartial();
     }
 
